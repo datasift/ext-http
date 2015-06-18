@@ -1158,8 +1158,8 @@ static PHP_METHOD(HttpEnvResponse, __invoke)
 
 		PHP_HTTP_ENV_RESPONSE_OBJECT_INIT(obj);
 
-		if (!obj->body) {
-			php_http_message_object_init_body_object(obj);
+		if (!obj->message->body) {
+			php_http_message_object_init_body_object(obj, NULL);
 		}
 
 		if (ob_flags & PHP_OUTPUT_HANDLER_CLEAN) {

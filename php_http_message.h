@@ -86,8 +86,6 @@ PHP_HTTP_API php_http_message_t *php_http_message_parse(php_http_message_t *msg,
 
 typedef struct php_http_message_object {
 	php_http_message_t *message;
-	struct php_http_message_object *parent;
-	php_http_message_body_object_t *body;
 	zval iterator;
 	zend_object zo;
 } php_http_message_object_t;
@@ -99,8 +97,12 @@ PHP_MSHUTDOWN_FUNCTION(http_message);
 
 void php_http_message_object_prepend(zval *this_ptr, zval *prepend, zend_bool top /* = 1 */);
 void php_http_message_object_reverse(zval *this_ptr, zval *return_value);
+
+void php_http_message_object_set_message(php_http_message_object_t *obj, php_http_message_t *msg);
+void php_http_message_object_set_parent_message(php_http_message_object_t *obj, php_http_message_t *msg);
+
 ZEND_RESULT_CODE php_http_message_object_set_body(php_http_message_object_t *obj, zval *zbody);
-ZEND_RESULT_CODE php_http_message_object_init_body_object(php_http_message_object_t *obj);
+ZEND_RESULT_CODE php_http_message_object_init_body_object(php_http_message_object_t *obj, zval *tmp_body);
 
 zend_object *php_http_message_object_new(zend_class_entry *ce);
 php_http_message_object_t *php_http_message_object_new_ex(zend_class_entry *ce, php_http_message_t *msg);
