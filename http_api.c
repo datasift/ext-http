@@ -26,6 +26,8 @@
 #	include "php_http_exception_object.h"
 #endif
 
+#include "php_streams.h" // 2015-08-20 Nicola Asuni - patch for PHP 5.6 compatibility
+
 PHP_MINIT_FUNCTION(http_support)
 {
 	HTTP_LONG_CONSTANT("HTTP_SUPPORT", HTTP_SUPPORT);
@@ -348,10 +350,21 @@ PHP_HTTP_API STATUS _http_get_request_body_ex(char **body, size_t *length, zend_
 {
 	*length = 0;
 	*body = NULL;
-	
-	if (SG(request_info).raw_post_data) {
-		*length = SG(request_info).raw_post_data_length;
-		*body = SG(request_info).raw_post_data;
+
+	// 2015-08-20 Nicola Asuni - patch for PHP 5.6 compatibility
+	php_stream *s = php_stream_temp_new();
+	php_stream *input = php_stream_open_wrapper("php://input", "r", 0, NULL);
+	// "php://input" does not support stat
+	php_stream_copy_to_stream_ex(input, s, -1, NULL);
+	php_stream_close(input);
+	php_stream_rewind(s);
+	char *raw_post_data = NULL;
+	long raw_post_data_length = 0;
+	raw_post_data_length = php_stream_copy_to_mem(s, raw_post_data, -1, 0);
+
+	if (raw_post_data) {
+		*length = raw_post_data_length;
+		*body = raw_post_data;
 		
 		if (dup) {
 			*body = estrndup(*body, *length);
@@ -382,8 +395,8 @@ PHP_HTTP_API STATUS _http_get_request_body_ex(char **body, size_t *length, zend_
 			return FAILURE;
 		}
 		
-		SG(request_info).raw_post_data = *body;
-		SG(request_info).raw_post_data_length = *length;
+		raw_post_data = *body;
+		raw_post_data_length = *length;
 		
 		if (dup) {
 			*body = estrndup(*body, *length);
@@ -398,9 +411,18 @@ PHP_HTTP_API STATUS _http_get_request_body_ex(char **body, size_t *length, zend_
 /* {{{ php_stream *http_get_request_body_stream(void) */
 PHP_HTTP_API php_stream *_http_get_request_body_stream(TSRMLS_D)
 {
-	php_stream *s = NULL;
+	// 2015-08-20 Nicola Asuni - patch for PHP 5.6 compatibility
+	php_stream *s = php_stream_temp_new();
+	php_stream *input = php_stream_open_wrapper("php://input", "r", 0, NULL);
+	// "php://input" does not support stat
+	php_stream_copy_to_stream_ex(input, s, -1, NULL);
+	php_stream_close(input);
+	php_stream_rewind(s);
+	char *raw_post_data = NULL;
+	long raw_post_data_length = 0;
+	raw_post_data_length = php_stream_copy_to_mem(s, raw_post_data, -1, 0);
 	
-	if (SG(request_info).raw_post_data) {
+	if (raw_post_data) {
 		s = php_stream_open_wrapper("php://input", "rb", 0, NULL);
 	} else if (sapi_module.read_post && !HTTP_G->read_post_data) {
 		HTTP_G->read_post_data = 1;
